@@ -81,11 +81,17 @@
       margin-bottom: 0.25rem;
     }
 
-    .trade button {
-      margin-right: 0.5rem;
-      margin-top: 0.5rem;
-      background: #444;
-    }
+  .trade button {
+    margin-right: 0.5rem;
+    margin-top: 0.5rem;
+    background: #333;
+    color: white;
+    border: none;
+    padding: 0.4rem 0.7rem;
+    font-size: 0.9rem;
+    cursor: pointer;
+    border-radius: 3px;
+  }
 
     .remove-btn {
       background: #cc0000;
@@ -307,33 +313,116 @@
       loadSavedTrades();
     }
 
-    function loadSavedTrades() {
-      savedListContainer.innerHTML = '';
+function loadSavedTrades() {
+  savedListContainer.innerHTML = '';
+  const trades = JSON.parse(localStorage.getItem("trades") || "[]");
+
+  trades.forEach((trade, index) => {
+    const div = document.createElement("div");
+    div.className = "trade";
+
+    const entriesHTML = trade.entries.map((e, i) =>
+      `<div class="trade-entry">Entry ${i + 1}: ${e.entryPrice} @ ${e.lots} lots</div>`
+    ).join("");
+
+    div.innerHTML = `
+      <div class="trade-name">${trade.tradeName}</div>
+      <div>Position: ${trade.positionType}</div>
+      ${entriesHTML}
+      <div>Stop Loss: ${trade.stopLoss}</div>
+      <div>Target: ${trade.targetPrice}</div>
+      <div>Risk: ₹${parseFloat(trade.results.totalRisk).toFixed(2)}</div>
+      <div>Reward: ₹${parseFloat(trade.results.totalReward).toFixed(2)}</div>
+      <div>R:R = ${trade.results.ratio}</div>
+      <div style="margin-top: 0.5rem;">
+        <button class="load-btn" data-index="${index}">Load</button>
+        <button class="delete-btn" data-index="${index}">Delete</button>
+        <button class="copy-btn" data-index="${index}">Copy</button>
+      </div>
+    `;
+    savedListContainer.appendChild(div);
+  });
+
+  // Attach event listeners
+  document.querySelectorAll('.load-btn').forEach(btn =>
+    btn.addEventListener('click', (e) => {
+      const index = e.target.getAttribute('data-index');
       const trades = JSON.parse(localStorage.getItem("trades") || "[]");
+      loadTrade(trades[index].tradeName);
+    })
+  );
 
-      trades.forEach(trade => {
-        const div = document.createElement("div");
-        div.className = "trade";
+  document.querySelectorAll('.delete-btn').forEach(btn =>
+    btn.addEventListener('click', (e) => {
+      const index = e.target.getAttribute('data-index');
+      const trades = JSON.parse(localStorage.getItem("trades") || "[]");
+      deleteTrade(trades[index].tradeName);
+    })
+  );
 
-        const entriesHTML = trade.entries.map(e =>
-          `<div class="trade-entry">Lots: ${e.lots}, Entry: ${e.entryPrice}</div>`).join("");
+  document.querySelectorAll('.copy-btn').forEach(btn =>
+    btn.addEventListener('click', (e) => {
+      const index = e.target.getAttribute('data-index');
+      const trades = JSON.parse(localStorage.getItem("trades") || "[]");
+      copyTrade(trades[index]);
+    })
+  );
+}
 
-        div.innerHTML = `
-          <div class="trade-name">${trade.tradeName}</div>
-          ${entriesHTML}
-          <div>Stop Loss: ${trade.stopLoss}</div>
-          <div>Target: ${trade.targetPrice}</div>
-          <div>Tick Size: ${trade.tickSize}, Tick Value: ${trade.tickValue}</div>
-          <div>Position: ${trade.positionType}</div>
-          <div>Risk: ₹${parseFloat(trade.results.totalRisk).toFixed(2)}</div>
-          <div>Reward: ₹${parseFloat(trade.results.totalReward).toFixed(2)}</div>
-          <div>R:R = ${trade.results.ratio}</div>
-          <button onclick='loadTrade("${trade.tradeName}")'>Load</button>
-          <button onclick='deleteTrade("${trade.tradeName}")'>Delete</button>
-        `;
-        savedListContainer.appendChild(div);
-      });
-    }
+function copyTrade(trade) {
+  const lines = [
+    `Trade Name: ${trade.tradeName}`,
+    `Position: ${capitalize(trade.positionType)}`
+  ];
+
+  trade.entries.forEach((e, i) => {
+    lines.push(`Entry ${i + 1}: ${e.entryPrice} @ ${e.lots} lots`);
+  });
+
+  lines.push(
+    `Stop Loss: ${trade.stopLoss}`,
+    `Target: ${trade.targetPrice}`,
+    `Risk: ₹${parseFloat(trade.results.totalRisk).toFixed(2)}`,
+    `Reward: ₹${parseFloat(trade.results.totalReward).toFixed(2)}`,
+    `Risk-Reward Ratio: 1:${parseFloat(trade.results.ratio).toFixed(2)}`
+  );
+
+  const text = lines.join('\n');
+
+  // Modern Clipboard API
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(text).then(() => {
+      alert("Copied!");
+    }).catch(err => {
+      console.error("Clipboard error:", err);
+      fallbackCopy(text);
+    });
+  } else {
+    fallbackCopy(text);
+  }
+}
+
+function fallbackCopy(text) {
+  const textarea = document.createElement("textarea");
+  textarea.value = text;
+  textarea.style.position = "fixed";
+  textarea.style.top = "-1000px";
+  document.body.appendChild(textarea);
+  textarea.focus();
+  textarea.select();
+  try {
+    document.execCommand("copy");
+    alert("Copied!");
+  } catch (err) {
+    alert("Failed to copy");
+  }
+  document.body.removeChild(textarea);
+}
+
+function capitalize(str) {
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
 
     function loadTrade(name) {
       const trades = JSON.parse(localStorage.getItem("trades") || "[]");

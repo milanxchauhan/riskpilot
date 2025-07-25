@@ -7,65 +7,108 @@
   <style>
     body {
       font-family: sans-serif;
-      padding: 2rem;
+      margin: 0;
+      padding: 0;
       background: #f9f9f9;
+      display: flex;
     }
-    h2 {
+
+    .container {
+      flex: 2;
+      padding: 2rem;
+      background: white;
+      min-height: 100vh;
+    }
+
+    .sidebar {
+      flex: 1;
+      border-left: 1px solid #ddd;
+      padding: 2rem;
+      background: #fafafa;
+      max-width: 300px;
+    }
+
+    h2, h3 {
       margin-bottom: 1rem;
     }
+
     .row, .inputs {
       display: flex;
       gap: 1rem;
       margin-bottom: 0.5rem;
       flex-wrap: wrap;
     }
+
     input, select, button {
       padding: 0.5rem;
       font-size: 1rem;
     }
-    .entry-rows {
-      margin-bottom: 1rem;
-    }
+
     button {
       cursor: pointer;
       background: #333;
       color: white;
       border: none;
     }
-    .result {
-      margin-top: 1rem;
-      font-weight: bold;
+
+    .entry-rows {
+      margin-bottom: 1rem;
     }
-    .container {
-      max-width: 800px;
-      background: white;
-      padding: 1.5rem;
-      border-radius: 8px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.05);
-    }
-    label {
-      font-size: 0.9rem;
-    }
+
     .entry-results {
       font-size: 0.9rem;
       margin-top: 0.25rem;
       color: #444;
     }
+
+    .result {
+      margin-top: 1rem;
+      font-weight: bold;
+    }
+
+    .trade {
+      border: 1px solid #ccc;
+      padding: 1rem;
+      margin-bottom: 1rem;
+      border-radius: 5px;
+      background: white;
+    }
+
+    .trade-name {
+      font-weight: bold;
+      margin-bottom: 0.5rem;
+    }
+
+    .trade button {
+      margin-right: 0.5rem;
+      margin-top: 0.5rem;
+      background: #444;
+    }
+
+    label {
+      font-size: 0.9rem;
+    }
   </style>
 </head>
 <body>
+
   <div class="container">
     <h2>Futures Risk & Reward Calculator</h2>
 
-    <div id="entry-levels" class="entry-rows">
-      <!-- Entry rows go here -->
+    <div class="inputs">
+      <div style="flex:1;">
+        <label>Trade Name:</label><br/>
+        <input type="text" id="tradeName">
+      </div>
     </div>
+
+    <div id="entry-levels" class="entry-rows"></div>
 
     <button onclick="addEntryRow()">+ Add Price Level</button>
 
     <div class="inputs">
       <div>
-        <label>Stop Loss Price:</label><br/>
+        <label>Stop Loss:</label><br/>
         <input type="number" id="stopLoss" step="any">
       </div>
 
@@ -94,31 +137,42 @@
     </div>
 
     <button onclick="calculateRiskReward()" style="margin-top:1rem;">Calculate</button>
+    <button onclick="saveTrade()" style="margin-top:1rem; margin-left:1rem;">Save Trade</button>
 
     <div class="result" id="result"></div>
   </div>
 
+  <div class="sidebar">
+    <h3>Saved Trades</h3>
+    <div id="savedTradesList"></div>
+  </div>
+
   <script>
     const entryContainer = document.getElementById("entry-levels");
+    const savedListContainer = document.getElementById("savedTradesList");
 
-    function addEntryRow() {
+    function addEntryRow(lots = '', entryPrice = '') {
       const row = document.createElement("div");
       row.className = "row entry-row";
       row.innerHTML = `
         <div>
           <label>Lots:</label><br/>
-          <input type="number" step="any" class="lots">
+          <input type="number" step="any" class="lots" value="${lots}">
         </div>
         <div>
           <label>Entry Price:</label><br/>
-          <input type="number" step="any" class="entryPrice">
+          <input type="number" step="any" class="entryPrice" value="${entryPrice}">
         </div>
         <div class="entry-results"></div>
       `;
       entryContainer.appendChild(row);
     }
 
-    // Add initial row
+    function clearEntryRows() {
+      entryContainer.innerHTML = '';
+    }
+
+    // Initialize with 1 row
     addEntryRow();
 
     function calculateRiskReward() {
@@ -129,7 +183,7 @@
       const positionType = document.getElementById("positionType").value;
 
       if ([stopLoss, targetPrice, tickSize, tickValue].some(isNaN)) {
-        document.getElementById("result").textContent = "Please fill all fields.";
+        document.getElementById("result").textContent = "Please fill all required fields.";
         return;
       }
 
@@ -143,15 +197,13 @@
         const resultDiv = row.querySelector(".entry-results");
 
         if (!isNaN(lots) && !isNaN(entryPrice)) {
-          let ticksToSL = 0, ticksToTarget = 0;
+          let ticksToSL = positionType === "long"
+            ? (entryPrice - stopLoss) / tickSize
+            : (stopLoss - entryPrice) / tickSize;
 
-          if (positionType === "long") {
-            ticksToSL = (entryPrice - stopLoss) / tickSize;
-            ticksToTarget = (targetPrice - entryPrice) / tickSize;
-          } else {
-            ticksToSL = (stopLoss - entryPrice) / tickSize;
-            ticksToTarget = (entryPrice - targetPrice) / tickSize;
-          }
+          let ticksToTarget = positionType === "long"
+            ? (targetPrice - entryPrice) / tickSize
+            : (entryPrice - targetPrice) / tickSize;
 
           const risk = Math.max(0, ticksToSL * tickValue * lots);
           const reward = Math.max(0, ticksToTarget * tickValue * lots);
@@ -160,8 +212,8 @@
           totalReward += reward;
 
           resultDiv.innerHTML = `
-            Risk: $${risk.toFixed(2)}<br/>
-            Reward: $${reward.toFixed(2)}<br/>
+            Risk: ₹${risk.toFixed(2)}<br/>
+            Reward: ₹${reward.toFixed(2)}<br/>
             Ticks to SL: ${ticksToSL.toFixed(2)} | Ticks to Target: ${ticksToTarget.toFixed(2)}
           `;
         } else {
@@ -169,14 +221,96 @@
         }
       });
 
-      let ratio = totalRisk === 0 ? "N/A" : (totalReward / totalRisk).toFixed(2);
+      const ratio = totalRisk === 0 ? "N/A" : (totalReward / totalRisk).toFixed(2);
 
       document.getElementById("result").innerHTML = `
-        Total Risk: $${totalRisk.toFixed(2)}<br/>
-        Total Reward: $${totalReward.toFixed(2)}<br/>
+        Total Risk: ₹${totalRisk.toFixed(2)}<br/>
+        Total Reward: ₹${totalReward.toFixed(2)}<br/>
         Risk-Reward Ratio: ${ratio}
       `;
+
+      return { totalRisk, totalReward, ratio };
     }
+
+    function saveTrade() {
+      const tradeName = document.getElementById("tradeName").value.trim();
+      if (!tradeName) return alert("Please enter a trade name.");
+
+      const entries = [];
+      document.querySelectorAll(".entry-row").forEach(row => {
+        entries.push({
+          lots: row.querySelector(".lots").value,
+          entryPrice: row.querySelector(".entryPrice").value
+        });
+      });
+
+      const data = {
+        tradeName,
+        stopLoss: document.getElementById("stopLoss").value,
+        targetPrice: document.getElementById("targetPrice").value,
+        tickSize: document.getElementById("tickSize").value,
+        tickValue: document.getElementById("tickValue").value,
+        positionType: document.getElementById("positionType").value,
+        entries,
+        results: calculateRiskReward()
+      };
+
+      let trades = JSON.parse(localStorage.getItem("trades") || "[]");
+      const existingIndex = trades.findIndex(t => t.tradeName === tradeName);
+      if (existingIndex !== -1) trades[existingIndex] = data;
+      else trades.push(data);
+
+      localStorage.setItem("trades", JSON.stringify(trades));
+      loadSavedTrades();
+    }
+
+    function loadSavedTrades() {
+      savedListContainer.innerHTML = '';
+      const trades = JSON.parse(localStorage.getItem("trades") || "[]");
+
+      trades.forEach(trade => {
+        const div = document.createElement("div");
+        div.className = "trade";
+
+        div.innerHTML = `
+          <div class="trade-name">${trade.tradeName}</div>
+          <div>Risk: ₹${parseFloat(trade.results.totalRisk).toFixed(2)}</div>
+          <div>Reward: ₹${parseFloat(trade.results.totalReward).toFixed(2)}</div>
+          <div>R:R = ${trade.results.ratio}</div>
+          <button onclick='loadTrade("${trade.tradeName}")'>Load</button>
+          <button onclick='deleteTrade("${trade.tradeName}")'>Delete</button>
+        `;
+        savedListContainer.appendChild(div);
+      });
+    }
+
+    function loadTrade(name) {
+      const trades = JSON.parse(localStorage.getItem("trades") || "[]");
+      const trade = trades.find(t => t.tradeName === name);
+      if (!trade) return;
+
+      document.getElementById("tradeName").value = trade.tradeName;
+      document.getElementById("stopLoss").value = trade.stopLoss;
+      document.getElementById("targetPrice").value = trade.targetPrice;
+      document.getElementById("tickSize").value = trade.tickSize;
+      document.getElementById("tickValue").value = trade.tickValue;
+      document.getElementById("positionType").value = trade.positionType;
+
+      clearEntryRows();
+      trade.entries.forEach(e => addEntryRow(e.lots, e.entryPrice));
+
+      calculateRiskReward();
+    }
+
+    function deleteTrade(name) {
+      let trades = JSON.parse(localStorage.getItem("trades") || "[]");
+      trades = trades.filter(t => t.tradeName !== name);
+      localStorage.setItem("trades", JSON.stringify(trades));
+      loadSavedTrades();
+    }
+
+    // Load on page load
+    loadSavedTrades();
   </script>
 </body>
 </html>

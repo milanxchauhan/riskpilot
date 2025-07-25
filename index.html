@@ -3,8 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Futures Risk & Reward Calculator</title>
+  <title>Risk & Reward Calculator</title>
   <style>
+    * { box-sizing: border-box; }
     body {
       font-family: sans-serif;
       margin: 0;
@@ -25,7 +26,8 @@
       border-left: 1px solid #ddd;
       padding: 2rem;
       background: #fafafa;
-      max-width: 300px;
+      max-width: 350px;
+      overflow-y: auto;
     }
 
     h2, h3 {
@@ -37,18 +39,12 @@
       gap: 1rem;
       margin-bottom: 0.5rem;
       flex-wrap: wrap;
+      align-items: flex-end;
     }
 
     input, select, button {
       padding: 0.5rem;
       font-size: 1rem;
-    }
-
-    button {
-      cursor: pointer;
-      background: #333;
-      color: white;
-      border: none;
     }
 
     .entry-rows {
@@ -72,11 +68,17 @@
       margin-bottom: 1rem;
       border-radius: 5px;
       background: white;
+      font-size: 0.9rem;
     }
 
     .trade-name {
       font-weight: bold;
       margin-bottom: 0.5rem;
+    }
+
+    .trade-entry {
+      font-family: monospace;
+      margin-bottom: 0.25rem;
     }
 
     .trade button {
@@ -85,8 +87,31 @@
       background: #444;
     }
 
+    .remove-btn {
+      background: #cc0000;
+      color: white;
+      border: none;
+      font-weight: bold;
+      padding: 0 0.6rem;
+      font-size: 1rem;
+      line-height: 1;
+      height: 2rem;
+      cursor: pointer;
+      margin-top: 1.5rem;
+    }
+
+    .control-buttons {
+      display: flex;
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+
     label {
       font-size: 0.9rem;
+    }
+
+    .scroll {
+      overflow-x: auto;
     }
   </style>
 </head>
@@ -136,8 +161,11 @@
       </div>
     </div>
 
-    <button onclick="calculateRiskReward()" style="margin-top:1rem;">Calculate</button>
-    <button onclick="saveTrade()" style="margin-top:1rem; margin-left:1rem;">Save Trade</button>
+    <div class="control-buttons">
+      <button onclick="calculateRiskReward()">Calculate</button>
+      <button onclick="saveTrade()">Save Trade</button>
+      <button onclick="clearForm()">Clear</button>
+    </div>
 
     <div class="result" id="result"></div>
   </div>
@@ -163,17 +191,32 @@
           <label>Entry Price:</label><br/>
           <input type="number" step="any" class="entryPrice" value="${entryPrice}">
         </div>
+        <button class="remove-btn" onclick="removeRow(this)">✕</button>
         <div class="entry-results"></div>
       `;
       entryContainer.appendChild(row);
+    }
+
+    function removeRow(btn) {
+      btn.parentElement.remove();
+      calculateRiskReward();
     }
 
     function clearEntryRows() {
       entryContainer.innerHTML = '';
     }
 
-    // Initialize with 1 row
-    addEntryRow();
+    function clearForm() {
+      document.getElementById("tradeName").value = '';
+      document.getElementById("stopLoss").value = '';
+      document.getElementById("targetPrice").value = '';
+      document.getElementById("tickSize").value = '';
+      document.getElementById("tickValue").value = '';
+      document.getElementById("positionType").value = 'long';
+      clearEntryRows();
+      addEntryRow();
+      document.getElementById("result").innerHTML = '';
+    }
 
     function calculateRiskReward() {
       const stopLoss = parseFloat(document.getElementById("stopLoss").value);
@@ -212,8 +255,8 @@
           totalReward += reward;
 
           resultDiv.innerHTML = `
-            Risk: $${risk.toFixed(2)}<br/>
-            Reward: $${reward.toFixed(2)}<br/>
+            Risk: ₹${risk.toFixed(2)}<br/>
+            Reward: ₹${reward.toFixed(2)}<br/>
             Ticks to SL: ${ticksToSL.toFixed(2)} | Ticks to Target: ${ticksToTarget.toFixed(2)}
           `;
         } else {
@@ -224,8 +267,8 @@
       const ratio = totalRisk === 0 ? "N/A" : (totalReward / totalRisk).toFixed(2);
 
       document.getElementById("result").innerHTML = `
-        Total Risk: $${totalRisk.toFixed(2)}<br/>
-        Total Reward: $${totalReward.toFixed(2)}<br/>
+        Total Risk: ₹${totalRisk.toFixed(2)}<br/>
+        Total Reward: ₹${totalReward.toFixed(2)}<br/>
         Risk-Reward Ratio: ${ratio}
       `;
 
@@ -272,10 +315,18 @@
         const div = document.createElement("div");
         div.className = "trade";
 
+        const entriesHTML = trade.entries.map(e =>
+          `<div class="trade-entry">Lots: ${e.lots}, Entry: ${e.entryPrice}</div>`).join("");
+
         div.innerHTML = `
           <div class="trade-name">${trade.tradeName}</div>
-          <div>Risk: $${parseFloat(trade.results.totalRisk).toFixed(2)}</div>
-          <div>Reward: $${parseFloat(trade.results.totalReward).toFixed(2)}</div>
+          ${entriesHTML}
+          <div>Stop Loss: ${trade.stopLoss}</div>
+          <div>Target: ${trade.targetPrice}</div>
+          <div>Tick Size: ${trade.tickSize}, Tick Value: ${trade.tickValue}</div>
+          <div>Position: ${trade.positionType}</div>
+          <div>Risk: ₹${parseFloat(trade.results.totalRisk).toFixed(2)}</div>
+          <div>Reward: ₹${parseFloat(trade.results.totalReward).toFixed(2)}</div>
           <div>R:R = ${trade.results.ratio}</div>
           <button onclick='loadTrade("${trade.tradeName}")'>Load</button>
           <button onclick='deleteTrade("${trade.tradeName}")'>Delete</button>
@@ -309,7 +360,8 @@
       loadSavedTrades();
     }
 
-    // Load on page load
+    // Init
+    clearForm();
     loadSavedTrades();
   </script>
 </body>

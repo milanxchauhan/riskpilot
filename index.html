@@ -1,114 +1,110 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Futures Risk Calculator</title>
-    <style>
-        body {
-            font-family: sans-serif;
-            padding: 2rem;
-            background: #f9f9f9;
-        }
-
-        h2 {
-            margin-bottom: 1rem;
-        }
-
-        .row,
-        .inputs {
-            display: flex;
-            gap: 1rem;
-            margin-bottom: 0.5rem;
-            flex-wrap: wrap;
-        }
-
-        input,
-        select,
-        button {
-            padding: 0.5rem;
-            font-size: 1rem;
-        }
-
-        .entry-rows {
-            margin-bottom: 1rem;
-        }
-
-        button {
-            cursor: pointer;
-            background: #333;
-            color: white;
-            border: none;
-        }
-
-        .result {
-            margin-top: 1rem;
-            font-weight: bold;
-        }
-
-        .container {
-            max-width: 600px;
-            background: white;
-            padding: 1.5rem;
-            border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
-        }
-
-        label {
-            font-size: 0.9rem;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Futures Risk & Reward Calculator</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 2rem;
+      background: #f9f9f9;
+    }
+    h2 {
+      margin-bottom: 1rem;
+    }
+    .row, .inputs {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 0.5rem;
+      flex-wrap: wrap;
+    }
+    input, select, button {
+      padding: 0.5rem;
+      font-size: 1rem;
+    }
+    .entry-rows {
+      margin-bottom: 1rem;
+    }
+    button {
+      cursor: pointer;
+      background: #333;
+      color: white;
+      border: none;
+    }
+    .result {
+      margin-top: 1rem;
+      font-weight: bold;
+    }
+    .container {
+      max-width: 800px;
+      background: white;
+      padding: 1.5rem;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.05);
+    }
+    label {
+      font-size: 0.9rem;
+    }
+    .entry-results {
+      font-size: 0.9rem;
+      margin-top: 0.25rem;
+      color: #444;
+    }
+  </style>
 </head>
-
 <body>
-    <div class="container">
-        <h2>Futures Risk Calculator</h2>
+  <div class="container">
+    <h2>Futures Risk & Reward Calculator</h2>
 
-        <div id="entry-levels" class="entry-rows">
-            <!-- Entry rows will be inserted here -->
-        </div>
-
-        <button onclick="addEntryRow()">+ Add Price Level</button>
-
-        <div class="inputs">
-            <div>
-                <label>Stop Loss:</label><br />
-                <input type="number" id="stopLoss" step="any">
-            </div>
-
-            <div>
-                <label>Position Type:</label><br />
-                <select id="positionType">
-                    <option value="long">Long</option>
-                    <option value="short">Short</option>
-                </select>
-            </div>
-
-            <div>
-                <label>Tick Size:</label><br />
-                <input type="number" id="tickSize" step="any">
-            </div>
-
-            <div>
-                <label>Tick Value:</label><br />
-                <input type="number" id="tickValue" step="any">
-            </div>
-        </div>
-
-        <button onclick="calculateRisk()" style="margin-top:1rem;">Calculate Risk</button>
-
-        <div class="result" id="result"></div>
+    <div id="entry-levels" class="entry-rows">
+      <!-- Entry rows go here -->
     </div>
 
-    <script>
-        const entryContainer = document.getElementById("entry-levels");
+    <button onclick="addEntryRow()">+ Add Price Level</button>
 
-        function addEntryRow() {
-            const row = document.createElement("div");
-            row.className = "row";
+    <div class="inputs">
+      <div>
+        <label>Stop Loss Price:</label><br/>
+        <input type="number" id="stopLoss" step="any">
+      </div>
 
-            row.innerHTML = `
+      <div>
+        <label>Target Price:</label><br/>
+        <input type="number" id="targetPrice" step="any">
+      </div>
+
+      <div>
+        <label>Position Type:</label><br/>
+        <select id="positionType">
+          <option value="long">Long</option>
+          <option value="short">Short</option>
+        </select>
+      </div>
+
+      <div>
+        <label>Tick Size:</label><br/>
+        <input type="number" id="tickSize" step="any">
+      </div>
+
+      <div>
+        <label>Tick Value:</label><br/>
+        <input type="number" id="tickValue" step="any">
+      </div>
+    </div>
+
+    <button onclick="calculateRiskReward()" style="margin-top:1rem;">Calculate</button>
+
+    <div class="result" id="result"></div>
+  </div>
+
+  <script>
+    const entryContainer = document.getElementById("entry-levels");
+
+    function addEntryRow() {
+      const row = document.createElement("div");
+      row.className = "row entry-row";
+      row.innerHTML = `
         <div>
           <label>Lots:</label><br/>
           <input type="number" step="any" class="lots">
@@ -117,49 +113,70 @@
           <label>Entry Price:</label><br/>
           <input type="number" step="any" class="entryPrice">
         </div>
+        <div class="entry-results"></div>
       `;
-            entryContainer.appendChild(row);
+      entryContainer.appendChild(row);
+    }
+
+    // Add initial row
+    addEntryRow();
+
+    function calculateRiskReward() {
+      const stopLoss = parseFloat(document.getElementById("stopLoss").value);
+      const targetPrice = parseFloat(document.getElementById("targetPrice").value);
+      const tickSize = parseFloat(document.getElementById("tickSize").value);
+      const tickValue = parseFloat(document.getElementById("tickValue").value);
+      const positionType = document.getElementById("positionType").value;
+
+      if ([stopLoss, targetPrice, tickSize, tickValue].some(isNaN)) {
+        document.getElementById("result").textContent = "Please fill all fields.";
+        return;
+      }
+
+      let totalRisk = 0;
+      let totalReward = 0;
+
+      const rows = document.querySelectorAll(".entry-row");
+      rows.forEach(row => {
+        const lots = parseFloat(row.querySelector(".lots").value);
+        const entryPrice = parseFloat(row.querySelector(".entryPrice").value);
+        const resultDiv = row.querySelector(".entry-results");
+
+        if (!isNaN(lots) && !isNaN(entryPrice)) {
+          let ticksToSL = 0, ticksToTarget = 0;
+
+          if (positionType === "long") {
+            ticksToSL = (entryPrice - stopLoss) / tickSize;
+            ticksToTarget = (targetPrice - entryPrice) / tickSize;
+          } else {
+            ticksToSL = (stopLoss - entryPrice) / tickSize;
+            ticksToTarget = (entryPrice - targetPrice) / tickSize;
+          }
+
+          const risk = Math.max(0, ticksToSL * tickValue * lots);
+          const reward = Math.max(0, ticksToTarget * tickValue * lots);
+
+          totalRisk += risk;
+          totalReward += reward;
+
+          resultDiv.innerHTML = `
+            Risk: $${risk.toFixed(2)}<br/>
+            Reward: $${reward.toFixed(2)}<br/>
+            Ticks to SL: ${ticksToSL.toFixed(2)} | Ticks to Target: ${ticksToTarget.toFixed(2)}
+          `;
+        } else {
+          resultDiv.innerHTML = '';
         }
+      });
 
-        // Add an initial row by default
-        addEntryRow();
+      let ratio = totalRisk === 0 ? "N/A" : (totalReward / totalRisk).toFixed(2);
 
-        function calculateRisk() {
-            const stopLoss = parseFloat(document.getElementById("stopLoss").value);
-            const tickSize = parseFloat(document.getElementById("tickSize").value);
-            const tickValue = parseFloat(document.getElementById("tickValue").value);
-            const positionType = document.getElementById("positionType").value;
-
-            if (isNaN(stopLoss) || isNaN(tickSize) || isNaN(tickValue)) {
-                document.getElementById("result").textContent = "Please fill all required fields.";
-                return;
-            }
-
-            let totalRisk = 0;
-
-            const rows = entryContainer.querySelectorAll(".row");
-            rows.forEach(row => {
-                const lots = parseFloat(row.querySelector(".lots").value);
-                const entryPrice = parseFloat(row.querySelector(".entryPrice").value);
-
-                if (!isNaN(lots) && !isNaN(entryPrice)) {
-                    let priceDiff = 0;
-                    if (positionType === "long") {
-                        priceDiff = entryPrice - stopLoss;
-                    } else {
-                        priceDiff = stopLoss - entryPrice;
-                    }
-
-                    const ticks = priceDiff / tickSize;
-                    const risk = ticks * tickValue * lots;
-                    totalRisk += risk;
-                }
-            });
-
-            const finalRisk = Math.max(0, totalRisk);
-            document.getElementById("result").textContent = `Total Risk if SL is hit: $${finalRisk.toFixed(2)}`;
-        }
-    </script>
+      document.getElementById("result").innerHTML = `
+        Total Risk: $${totalRisk.toFixed(2)}<br/>
+        Total Reward: $${totalReward.toFixed(2)}<br/>
+        Risk-Reward Ratio: ${ratio}
+      `;
+    }
+  </script>
 </body>
-
 </html>
